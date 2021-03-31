@@ -1,6 +1,6 @@
-driver,has_beef_with,because
-bottas,hamilton,hamilton always wins
-norris,sainz,sainz left for Ferrari when McLaren was doing better
-gasly,Red Bull,dropped him from the first team
-vettel,Ferrari,fired him
-perez,Aston Martin,replaced him with vettel
+driver,has_beef_with,because, beef_level
+bottas,hamilton,hamilton always wins, medium
+norris,sainz,sainz left for Ferrari when McLaren was doing better, medium
+gasly,Red Bull,dropped him from the first team, high
+vettel,Ferrari,fired him, medium
+perez,Aston Martin,replaced him with vettel, medium
