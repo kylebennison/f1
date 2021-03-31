@@ -49,3 +49,44 @@ w3 <- w2 %>%
   pivot_wider(names_from = col_def, values_from = value) %>% 
   select(-group) %>% # remove group since no longer needed
   pivot_wider(names_from = name, values_from = value)
+
+# Driving data --------------------------------------------------------------------
+
+# Not clear about these - only two values per driver, and one of them is always 0
+steering1 <- data$Scores$graph$Steering %>% enframe() %>% unnest(cols = "value")
+
+gforcelat1 <- data$Scores$graph$GforceLat %>% enframe() %>% unnest(cols = "value")
+
+gforcelong1 <- data$Scores$graph$GforceLong %>% enframe() %>% unnest(cols = "value")
+
+brake1 <- data$Scores$graph$Brake %>% enframe() %>% unnest(cols = "value")
+
+# This one is by lap by driver
+performance1 <- data$Scores$graph$Performance %>% enframe() %>% unnest(cols = "value")
+
+throttle1 <- data$Scores$graph$Throttle %>% enframe() %>% unnest(cols = "value")
+
+
+# Driver Info -------------------------------------------------------------
+# Thank god this one was stored normally
+
+driver_tbl <- data$init$data$Drivers %>% tibble()
+
+
+# Best --------------------------------------------------------------------
+# I think each name is a driver in finishing (running) order, but no clue what each datapoint is. I'm assuming the time is their fastest lap?
+# Shorter times look like sector times. I'm guessing there might be n_pitstops in there, laps led, etc.
+
+best1 <- data$best$data$DR$B %>% enframe() %>% unnest(cols = "value")
+
+
+# Free -------------------------------------------------------------------
+# I think this is info about the state of the race
+
+data$free$data[1:10]
+
+results1 <- data$free$data[11]$DR
+
+# Can't seem to get this into a neat table for some reason
+# separate(results1, c("driver", "best", "team", "pos", "interval", "DNF"), ",")
+# str_split_fixed(results1, ",", 6)
