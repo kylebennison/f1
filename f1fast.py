@@ -89,3 +89,35 @@ import plotly.io as pio
 pio.renderers
 
 fig.show(renderer='browser')
+
+# Try matplotlib
+
+plt.style.use('fivethirtyeight')
+
+x = range(1, int(green_laps[green_laps['Compound'] == 'HARD']['TyreLife'].max()))
+
+plt.plot(x,
+         green_laps[green_laps['Compound'] == 'HARD'].groupby('TyreLife').agg('mean')['LapTime'],
+         label = "Hard Tyre")
+
+plt.plot(range(1, int(green_laps[green_laps['Compound'] == 'MEDIUM']['TyreLife'].max() + 1)),
+         green_laps[green_laps['Compound'] == 'MEDIUM'].groupby('TyreLife').agg('mean')['LapTime'],
+         label = "Medium Tyre")
+
+plt.plot(range(1, int(green_laps[green_laps['Compound'] == 'SOFT']['TyreLife'].max() + 1)),
+         green_laps[green_laps['Compound'] == 'SOFT'].groupby('TyreLife').agg('mean')['LapTime'],
+         label = "Soft Tyre")
+
+
+plt.xlabel('Tyre Life in Laps', fontsize = 12,
+           color = 'k')
+
+plt.ylabel('Laptime in seconds', color = 'k')
+
+plt.title('Laptime falloff by tyre and life', color = 'k')
+
+plt.legend()
+
+plt.tight_layout()
+
+plt.show()
