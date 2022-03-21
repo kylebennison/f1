@@ -100,23 +100,61 @@ corners <- telem %>% group_by(Driver) %>%
 
 # TODO Replace long casewhen with something filtering using the corner data, or maybe left join
 # Corners
-analyze_corners <- function(driver1, ...){
-  telem %>% 
-    mutate(turn_num = case_when(
-      Distance > 621 & Distance < 821 ~ 1,
-      Distance > 1414 & Distance < 1614 ~ 2,
-      Distance > 1774 & Distance < 1974 ~ 3,
-      Distance > 2124 & Distance < 2324 ~ 4,
-      Distance > 2588 & Distance < 2788 ~ 5,
-      Distance > 3319 & Distance < 3519 ~ 6,
-      Distance > 3973 & Distance < 4173 ~ 7,
-      Distance > 4774 & Distance < 4974 ~ 8,
-      TRUE ~ NA_real_
-    )) %>% 
+corners_only <- telem %>% 
+  mutate(turn_num = case_when(
+    Distance > 621 & Distance < 821 ~ 1,
+    Distance > 1414 & Distance < 1614 ~ 2,
+    Distance > 1774 & Distance < 1974 ~ 3,
+    Distance > 2124 & Distance < 2324 ~ 4,
+    Distance > 2588 & Distance < 2788 ~ 5,
+    Distance > 3319 & Distance < 3519 ~ 6,
+    Distance > 3973 & Distance < 4173 ~ 7,
+    Distance > 4774 & Distance < 4974 ~ 8,
+    TRUE ~ NA_real_
+  ))
+
+analyze_corner_minimums <- function(driver1, ...){
+  
+  data <- corners_only %>% 
     filter(Driver %in% c(driver1, ...),
            !is.na(turn_num)) %>% 
     group_by(turn_num) %>% 
-    mutate(Distance = normalize_column(Distance, -1, 1) * 100) %>% 
+    mutate(Distance = normalize_column(Distance, -1, 1) * 100)
+  
+  min_speeds <- data %>% 
+    mutate(turn_num = paste0("Turn ", turn_num)) %>% 
+    group_by(turn_num, Driver) %>% 
+    summarise(min = min(Speed)) %>% 
+    ungroup() %>% 
+    group_by(turn_num) %>% 
+    gt(groupname_col = "turn_num", rowname_col = "Driver") %>% 
+    gt::cols_label(min = "Speed (kph)") %>% 
+    tab_header(title = "Minimum Speed by Corner",
+               subtitle = "Speed (kph)") %>% 
+    gt::data_color(columns = min,
+                   colors = scales::col_numeric(
+                     palette = c(
+                       "red", "white", "blue"
+                     ),
+                     domain = NULL
+                   )
+                   ) %>% 
+    tab_options(column_labels.hidden = TRUE)
+  
+  return(min_speeds)
+}
+
+analyze_corners <- function(driver1, ...){
+  
+  # Filter for drivers provided
+  data <- corners_only %>% 
+    filter(Driver %in% c(driver1, ...),
+           !is.na(turn_num)) %>% 
+    group_by(turn_num) %>% 
+    mutate(Distance = normalize_column(Distance, -1, 1) * 100)
+  
+  # Plot each corner
+  data %>% 
     ggplot(aes(x = Distance, y = Speed, color = Driver)) +
     geom_line(size = 2) +
     facet_wrap(vars(paste0("Turn ", turn_num)),
@@ -141,7 +179,7 @@ for(i in unique(telem$Team)){
   
   p <- analyze_corners(teammates) + 
     labs(subtitle = paste0(teammates[1], " vs. ", teammates[2], "\n",
-                           "Speed (kph) and Meters from Apex"))
+                           "Speed (kph) and Meters from Apex (braking corners only)"))
   
   ggsave(filename = paste0("Plots/corner_analysis_", teammates[1], "_", teammates[2], ".jpg"),
          plot = p,
