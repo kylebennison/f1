@@ -8,10 +8,29 @@ library(gt)
 
 # Themes and Colors -------------------------------------------------------
 driver_colors <- c(
-  "HAM" = "#000000",
-  "VER" = "#0600EF",
-  "LEC" = "#DC0000"
+  "HAM" = "#000000", "VER" = "#0600EF", "LEC" = "#DC0000",
+  "SAI" = "#ffeb00", "RUS" = "#00d2be", "LAT" = "#00A3E0",
+  "STR" = "#cedc00", "RIC" = "#47C7FC", "HUL" = "#006f62",
+  "TSU" = "#636363", "ZHO" = "#909090", "ALB" = "#041e42",
+  "NOR" = "#ff8000", "MSC" = "#b3b3b3", "OCO" = "#0064bf",
+  "GAS" = "#2b4562", "ALO" = "#d60812", "MAG" = "#E6002D",
+  "BOT" = "#a51d2f", "VET" = "#00594f", "PER" = "#db0a40"
 )
+
+team_colors <- c(
+  'Alfa Romeo'= '#900000', 
+  'AlphaTauri'= '#2b4562', 
+  'Alpine'= '#0090ff', 
+  'Aston Martin'= '#006f62', 
+  'Ferrari'= '#dc0000', 
+  'Haas F1 Team'= '#ffffff', 
+  'McLaren'= '#ff8700', 
+  'Mercedes'= '#00d2be', 
+  'Red Bull Racing'= '#0600ef', 
+  'Williams'= '#005aff'
+)
+
+source("theme_fivethirtyeight.r")
 
 # Team	Color	RGB
 # Mercedes	#00D2BE	0,210,90
@@ -27,6 +46,7 @@ driver_colors <- c(
 
 # Get Data ----------------------------------------------------------------
 
+# TODO
 laps <- fread("C:/Users/Kyle/Documents/Projects/Data Projects/f1/timing_data/2022_1_fp2_laps.csv")
 
 glimpse(laps)
@@ -40,6 +60,7 @@ laps %>%
   across(c(LapTime),
          .fns = ~ str_replace(.x, "00:0", "")),
   laps = as_datetime(LapTime, format = "m:ss"))
+##
 
 # Telem
 path <- "C:/Users/Kyle/Documents/Projects/Data Projects/f1/timing_data/"
@@ -87,6 +108,38 @@ corners <- telem %>% group_by(Driver) %>%
 
 # TODO Replace long casewhen with something filtering using the corner data, or maybe left join
 # Corners
+analyze_corners <- function(driver1, ...){
+  telem %>% 
+    mutate(turn_num = case_when(
+      Distance > 621 & Distance < 821 ~ 1,
+      Distance > 1414 & Distance < 1614 ~ 2,
+      Distance > 1774 & Distance < 1974 ~ 3,
+      Distance > 2124 & Distance < 2324 ~ 4,
+      Distance > 2588 & Distance < 2788 ~ 5,
+      Distance > 3319 & Distance < 3519 ~ 6,
+      Distance > 3973 & Distance < 4173 ~ 7,
+      Distance > 4774 & Distance < 4974 ~ 8,
+      TRUE ~ NA_real_
+    )) %>% 
+    filter(Driver %in% c(driver1, ...),
+           !is.na(turn_num)) %>% 
+    group_by(turn_num) %>% 
+    mutate(Distance = scale(Distance) * 100) %>% 
+    ggplot(aes(x = Distance, y = Speed, color = Driver)) +
+    geom_line(size = 2, alpha = .5) +
+    facet_wrap(vars(paste0("Turn ", turn_num)),
+               nrow = 4) +
+    scale_color_manual(name = "Driver",
+                       values = driver_colors) +
+    scale_alpha_identity() +
+    theme_fivethirtyeight() +
+    theme(legend.position = 'bottom')
+}
+
+# Teammate corner analysis
+analyze_corners("VER", "PER")
+
+# Slowest corner speeds
 telem %>% 
   mutate(turn_num = case_when(
     Distance > 621 & Distance < 821 ~ 1,
@@ -99,16 +152,28 @@ telem %>%
     Distance > 4774 & Distance < 4974 ~ 8,
     TRUE ~ NA_real_
   )) %>% 
-  filter(Driver %in% c('VER', 'LEC', 'HAM'),
-         !is.na(turn_num)) %>% 
+  filter(!is.na(turn_num)) %>% 
   group_by(turn_num) %>% 
   mutate(Distance = scale(Distance) * 100) %>% 
-  ggplot(aes(x = Distance, y = Speed, color = Driver)) +
-  geom_line(size = 2, alpha = .5) +
-  facet_wrap(vars(turn_num)) +
-  scale_color_manual(name = "Driver",
-                     values = driver_colors) +
-  scale_alpha_identity()
+  group_by(Driver, turn_num) %>% 
+  slice_min(order_by = Speed, n = 1L) %>% 
+  filter(turn_num == 1) %>% 
+  arrange(Speed) %>% 
+  ungroup() %>% 
+  select(Driver, Speed) %>% 
+  distinct() %>% 
+  gt() %>% 
+  data_color(
+    columns = Speed,
+    colors = scales::col_numeric(
+      palette = c(
+        "red", "white", "blue"
+      ),
+      domain = NULL
+    )
+  ) %>% 
+  gt::tab_header(title = md("Minimum Speeds - **Turn 1**"),
+                 subtitle = "On best qualifying lap")
 
 # Top speed per car
 telem %>% 
