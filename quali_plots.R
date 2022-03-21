@@ -32,17 +32,9 @@ team_colors <- c(
 
 source("theme_fivethirtyeight.r")
 
-# Team	Color	RGB
-# Mercedes	#00D2BE	0,210,90
-# Ferrari	#DC0000	220,0,0
-# Red Bull Racing	#0600EF	6,0,239
-# Alpine	#0090FF	0,144,255
-# Haas	#FFFFFF	255,255,255
-# Aston Martin	#006F62	0,111,98
-# AlphaTauri	#2B4562	43,69,98
-# McLaren	#FF8700	255,135,0
-# Alfa Romeo Racing	#900000	144,0,0
-# Williams	#005AFF	0,90,255
+normalize_column <- function(column, min, max){
+  ((max-min)*(column - min(column)) / (max(column) - min(column))) + min
+}
 
 # Get Data ----------------------------------------------------------------
 
@@ -124,7 +116,7 @@ analyze_corners <- function(driver1, ...){
     filter(Driver %in% c(driver1, ...),
            !is.na(turn_num)) %>% 
     group_by(turn_num) %>% 
-    mutate(Distance = scale(Distance) * 100) %>% 
+    mutate(Distance = normalize_column(Distance, -1, 1) * 100) %>% 
     ggplot(aes(x = Distance, y = Speed, color = Driver)) +
     geom_line(size = 2) +
     facet_wrap(vars(paste0("Turn ", turn_num)),
@@ -133,7 +125,10 @@ analyze_corners <- function(driver1, ...){
                        values = driver_colors) +
     #scale_alpha_identity() +
     theme_fivethirtyeight() +
-    theme(legend.position = 'bottom')
+    theme(legend.position = 'bottom') +
+    labs(title = "Corner Analysis",
+         x = "Meters from Apex",
+         y = "Speed (kph)")
 }
 
 # Teammate corner analysis
@@ -145,8 +140,8 @@ for(i in unique(telem$Team)){
     c()
   
   p <- analyze_corners(teammates) + 
-    labs(title = "Corner Analysis",
-         subtitle = paste0(teammates[1], " vs. ", teammates[2]))
+    labs(subtitle = paste0(teammates[1], " vs. ", teammates[2], "\n",
+                           "Speed (kph) and Meters from Apex"))
   
   ggsave(filename = paste0("Plots/corner_analysis_", teammates[1], "_", teammates[2], ".jpg"),
          plot = p,
