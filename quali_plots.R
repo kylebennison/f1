@@ -98,6 +98,22 @@ corners <- telem %>% group_by(Driver) %>%
   arrange(turn_start) %>% 
   mutate(turn_num = row_number())
 
+## TODO Current corner calculation only finds corners where you decelerate and then re-accelarate
+# This method gets the corners based on if the driver lifts off the throttle and then throttles down again, using median throttle for all drivers on their fastest lap
+# In Bahrain, identified 10/15 turns vs. 8/15 using speed alone. 5 turns require 0 lifting, apparently.
+telem %>% 
+  mutate(dist_rounded = (Distance %/% 20) * 20) %>% 
+  group_by(dist_rounded) %>% 
+  select(dist_rounded, Throttle, Brake, Speed) %>% 
+  summarise(med_throttle = median(Throttle),
+            med_brake = median(Brake),
+            med_Speed = median(Speed)) %>% 
+  mutate(lifting = (med_throttle - lag(med_throttle, 1L))) %>% 
+  mutate(local_min = if_else(lead(med_throttle) > med_throttle & lag(med_throttle) >= med_throttle,
+                             TRUE,
+                             FALSE)) %>% 
+  filter(local_min == TRUE)
+
 # TODO Replace long casewhen with something filtering using the corner data, or maybe left join
 # Corners
 corners_only <- telem %>% 
@@ -153,8 +169,35 @@ analyze_corners <- function(driver1, ...){
     group_by(turn_num) %>% 
     mutate(Distance = normalize_column(Distance, -1, 1) * 100)
   
+  ## Calculate time lost in the corner vs. teammate (calculate delta from 100m before to 100m after apex)
+  corner_speed <- data %>% 
+    mutate(ms = str_extract_all(Time, "\\.[0-9]+$"),
+           sec = str_extract_all(Time, "[0-9]+\\."),
+           sec = str_replace(sec, "\\.", ""),
+           min = str_extract_all(Time, "\\:[0-9]+\\:"),
+           min = str_replace_all(min, "\\:", ""),
+           across(c(ms, sec, min), as.double),
+           seconds = min*60 + sec + ms) %>% 
+    group_by(turn_num, Driver) %>% 
+    summarise(turn_start_time = min(seconds),
+              turn_end_time = max(seconds),
+              turn_time = turn_end_time - turn_start_time,
+              turn_distance = max(Distance) - min(Distance),
+              turn_kph = (turn_distance/turn_time)/1000*3600,
+              plot_y = min(Speed))
+  
+  corner_speed_text <- corner_speed %>% 
+    group_by(turn_num) %>% 
+    mutate(text_comparison = if_else(turn_kph == max(turn_kph),
+                                     paste0(Driver,
+                                            " ",
+                                            round(turn_kph - min(turn_kph), 3),
+                                            " kph faster"),
+                                     ""))
+  
   # Plot each corner
   data %>% 
+    left_join(corner_speed_text, by = c("Driver", "turn_num")) %>% 
     ggplot(aes(x = Distance, y = Speed, color = Driver)) +
     geom_line(size = 2) +
     facet_wrap(vars(paste0("Turn ", turn_num)),
@@ -166,7 +209,8 @@ analyze_corners <- function(driver1, ...){
     theme(legend.position = 'bottom') +
     labs(title = "Corner Analysis",
          x = "Meters from Apex",
-         y = "Speed (kph)")
+         y = "Speed (kph)") +
+    geom_text(aes(label = text_comparison, x = 0, y = plot_y + 50), color = "#000000")
 }
 
 # Teammate corner analysis
