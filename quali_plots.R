@@ -126,18 +126,35 @@ analyze_corners <- function(driver1, ...){
     group_by(turn_num) %>% 
     mutate(Distance = scale(Distance) * 100) %>% 
     ggplot(aes(x = Distance, y = Speed, color = Driver)) +
-    geom_line(size = 2, alpha = .5) +
+    geom_line(size = 2) +
     facet_wrap(vars(paste0("Turn ", turn_num)),
                nrow = 4) +
     scale_color_manual(name = "Driver",
                        values = driver_colors) +
-    scale_alpha_identity() +
+    #scale_alpha_identity() +
     theme_fivethirtyeight() +
     theme(legend.position = 'bottom')
 }
 
 # Teammate corner analysis
-analyze_corners("VER", "PER")
+for(i in unique(telem$Team)){
+  teammates <- telem %>% 
+    filter(Team == i) %>% 
+    pull(Driver) %>% 
+    unique() %>% 
+    c()
+  
+  p <- analyze_corners(teammates) + 
+    labs(title = "Corner Analysis",
+         subtitle = paste0(teammates[1], " vs. ", teammates[2]))
+  
+  ggsave(filename = paste0("Plots/corner_analysis_", teammates[1], "_", teammates[2], ".jpg"),
+         plot = p,
+         units = "mm",
+         width = 200,
+         height = 400)
+}
+
 
 # Slowest corner speeds
 telem %>% 
