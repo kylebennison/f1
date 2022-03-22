@@ -38,22 +38,6 @@ normalize_column <- function(column, min, max){
 
 # Get Data ----------------------------------------------------------------
 
-# TODO
-laps <- fread("C:/Users/Kyle/Documents/Projects/Data Projects/f1/timing_data/2022_1_fp2_laps.csv")
-
-glimpse(laps)
-
-
-laps %>%
-  mutate(across(
-    c(LapTime, PitOutTime, PitInTime),
-    .fns = ~ str_replace_all(.x, "0 days ", "")
-  ),
-  across(c(LapTime),
-         .fns = ~ str_replace(.x, "00:0", "")),
-  laps = as_datetime(LapTime, format = "m:ss"))
-##
-
 # Telem
 path <- "C:/Users/Kyle/Documents/Projects/Data Projects/f1/timing_data/"
 
