@@ -171,6 +171,7 @@ analyze_corners <- function(driver1, ...){
   
   ## Calculate time lost in the corner vs. teammate (calculate delta from 100m before to 100m after apex)
   corner_speed <- data %>% 
+    mutate(Time = if_else(str_detect(Time, "\\."), Time, paste0(Time, ".000000"))) %>% 
     mutate(ms = str_extract_all(Time, "\\.[0-9]+$"),
            sec = str_extract_all(Time, "[0-9]+\\."),
            sec = str_replace(sec, "\\.", ""),
