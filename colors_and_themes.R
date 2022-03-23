@@ -26,6 +26,93 @@ team_colors <- c(
 
 source("theme_fivethirtyeight.r")
 
+
+# Functions ---------------------------------------------------------------
+
 normalize_column <- function(column, min, max){
   ((max-min)*(column - min(column)) / (max(column) - min(column))) + min
+}
+
+convert_to_seconds <- function(string){
+  
+  if(str_detect(string, "[0-9]+\\:[0-9]+\\:[0-9]+\\.")){
+    
+    ms = str_extract_all(string, "\\.[0-9]+$")
+    
+    sec = str_extract_all(string, "[0-9]+\\.")
+    
+    sec = str_replace(sec, "\\.", "")
+    
+    min = str_extract_all(string, "\\:[0-9]+\\:")
+    
+    min = str_replace_all(min, "\\:", "")
+    
+    ms = as.double(ms)
+    sec = as.double(sec)
+    min = as.double(min)
+    seconds = 60*min + sec + ms
+    return(seconds)
+    
+  } else if(str_detect(string, "[0-9]+\\:[0-9]+\\:[0-9]+")){
+    
+    string = paste0(string, ".000000")
+      
+    # do rest normally
+    
+    ms = str_extract_all(string, "\\.[0-9]+$")
+    
+    sec = str_extract_all(string, "[0-9]+\\.")
+    
+    sec = str_replace(sec, "\\.", "")
+    
+    min = str_extract_all(string, "\\:[0-9]+\\:")
+    
+    min = str_replace_all(min, "\\:", "")
+    
+    ms = as.double(ms)
+    sec = as.double(sec)
+    min = as.double(min)
+    seconds = 60*min + sec + ms
+    return(seconds)
+    
+  } else {
+    message("Could not parse string. Expecting format:\nhh:mm:ss.ssssss")
+    return(string)
+  }
+  
+}
+
+add_seconds <- function(dataframe, column_to_convert){
+  
+  df <- dataframe %>% 
+    mutate(
+      clean_column = case_when(
+        str_detect(!!sym(column_to_convert), "[0-9]+\\:[0-9]+\\:[0-9]+\\.") ~ !!sym(column_to_convert),
+        !!sym(column_to_convert) == "" ~ NA_character_,
+        str_detect(!!sym(column_to_convert), "[0-9]+\\:[0-9]+\\:[0-9]+") ~ paste0(!!sym(column_to_convert), ".000000"),
+        TRUE ~ "parsing_failed"),
+      row = row_number())
+  
+  rows <- df %>% filter(clean_column == "parsing_failed") %>% 
+    pull(row)
+  
+  if(length(rows) > 0){
+    message("Warning: failed to parse time at rows ", rows)
+  }
+  
+    df <- df %>% 
+      mutate(
+      ms = str_extract_all(clean_column, "\\.[0-9]+$"),
+      sec = str_extract_all(clean_column, "[0-9]+\\."),
+      sec = str_replace(sec, "\\.", ""),
+      min = str_extract_all(clean_column, "\\:[0-9]+\\:"),
+      min = str_replace_all(min, "\\:", ""),
+      ms = as.double(ms),
+      sec = as.double(sec),
+      min = as.double(min),
+      seconds = 60*min + sec + ms
+    )
+  
+  return(df)
+  
 }
