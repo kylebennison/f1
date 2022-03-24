@@ -71,20 +71,13 @@ telem %>%
                              FALSE)) %>% 
   filter(local_min == TRUE)
 
-# TODO Replace long casewhen with something filtering using the corners df, or maybe left join
+# Filtering using the corners df to get telem data of corners only
 # Corners
-corners_only <- telem %>% 
-  mutate(turn_num = case_when(
-    Distance > 621 & Distance < 821 ~ 1,
-    Distance > 1414 & Distance < 1614 ~ 2,
-    Distance > 1774 & Distance < 1974 ~ 3,
-    Distance > 2124 & Distance < 2324 ~ 4,
-    Distance > 2588 & Distance < 2788 ~ 5,
-    Distance > 3319 & Distance < 3519 ~ 6,
-    Distance > 3973 & Distance < 4173 ~ 7,
-    Distance > 4774 & Distance < 4974 ~ 8,
-    TRUE ~ NA_real_
-  ))
+library(sqldf)
+
+corners_only <- sqldf("select * from telem a
+      join corners b
+      where a.Distance between b.turn_start and b.turn_end")
 
 analyze_corner_minimums <- function(driver1, ...){
   
