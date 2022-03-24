@@ -7,7 +7,7 @@ library(gt)
 
 
 # Themes and Colors -------------------------------------------------------
-source("colors_and_themes.r")
+source("prod_helpers/colors_and_themes.r")
 
 # Get Data ----------------------------------------------------------------
 
@@ -71,7 +71,7 @@ telem %>%
                              FALSE)) %>% 
   filter(local_min == TRUE)
 
-# TODO Replace long casewhen with something filtering using the corner data, or maybe left join
+# TODO Replace long casewhen with something filtering using the corners df, or maybe left join
 # Corners
 corners_only <- telem %>% 
   mutate(turn_num = case_when(
@@ -190,6 +190,7 @@ for(i in unique(telem$Team)){
          height = 400)
 }
 
+# TODO analyze sectors (break track into 400m sectors)
 
 # Slowest corner speeds
 telem %>% 
