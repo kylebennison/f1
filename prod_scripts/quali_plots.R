@@ -183,7 +183,30 @@ for(i in unique(telem$Team)){
          height = 400)
 }
 
+# TODO get the median speed for each corner
+corners_only %>% 
+  group_by(turn_num, Driver) %>% 
+  slice_min(Speed) %>% 
+  group_by(turn_num) %>% 
+  summarise(med_speed = median(Speed))
+  
+
 # TODO analyze sectors (break track into 400m sectors)
+sector_data <- telem %>% 
+  mutate(sector = Distance%/%400) %>% 
+  group_by(sector) %>% 
+  mutate(meters = normalize_column(Distance, 0, 400)) %>% 
+  ungroup()
+
+analyze_sectors <- function(driver1, ...){
+  
+  sector_data %>% 
+    filter(Driver %in% c(driver1, ...)) %>% 
+    ggplot(aes(x = meters, y = Speed, color = Driver)) +
+    geom_line() +
+    facet_wrap(vars(sector))
+  
+}
 
 # Slowest corner speeds
 telem %>% 
