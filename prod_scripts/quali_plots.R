@@ -208,6 +208,18 @@ analyze_sectors <- function(driver1, ...){
   
 }
 
+# Get speed distribution to indicate if this is a fast or slow track
+sector_data %>% 
+  ggplot(aes(x = Speed)) +
+  geom_density(fill = team_colors["AlphaTauri"]) +
+  theme_fivethirtyeight() +
+  labs(title = "Speed Distribution (km/h)",
+       subtitle = "Fastest qualifying lap for each driver")
+
+
+# WIP ---------------------------------------------------------------------
+
+
 # Slowest corner speeds
 telem %>% 
   mutate(turn_num = case_when(
