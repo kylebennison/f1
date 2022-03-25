@@ -13,12 +13,16 @@ library(gt)
 
 # Themes ------------------------------------------------------------------
 
-source("colors_and_themes.r")
+source("prod_helpers/colors_and_themes.r")
 
 
 # Data --------------------------------------------------------------------
 
-laps <- fread("C:/Users/Kyle/Documents/Projects/Data Projects/f1/timing_data/2022_1_fp2_laps.csv")
+year <- 2021
+round <- 22
+session <- 'FP1'
+
+laps <- fread(paste0("timing_data/", year, "_", round, "_", session, "_laps.csv"))
 
 
 # Clean Data --------------------------------------------------------------
@@ -56,9 +60,27 @@ laps_clean %>%
   scale_fill_manual(name = "Team", values = team_colors) +
   theme_fivethirtyeight()
 
+# Boxplot of only hot laps
+med_fast_lap <- laps_clean %>% 
+  slice_min(seconds, n = 20L) %>% 
+  pull(seconds) %>% 
+  median()
+
+laps_clean %>% 
+  filter(seconds < med_fast_lap*1.1) %>% 
+  ggplot(aes(x = seconds, y = reorder(Team, desc(seconds)), fill = Team)) +
+  geom_boxplot() +
+  scale_fill_manual(name = "Team", values = team_colors) +
+  theme_fivethirtyeight() +
+  labs(title = paste0("Lap Times (Race Pace)"),
+       subtitle = paste0("Jeddah - ", session, " - ", year))
+
+
+# WIP ---------------------------------------------------------------------
+
 # Race pace stints
 laps_clean %>% 
   filter(Driver %in% c("HAM", "VER", "LEC")) %>% 
-  filter(seconds <= min(seconds, na.rm = TRUE) * 1.1) %>% 
+  filter(seconds <= med_fast_lap * 1.1) %>% 
   ggplot(aes(x = LapNumber, y = seconds, color = Driver)) +
   geom_line()
