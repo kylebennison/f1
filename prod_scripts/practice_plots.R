@@ -18,9 +18,11 @@ source("prod_helpers/colors_and_themes.r")
 
 # Data --------------------------------------------------------------------
 
-year <- 2021
-round <- 22
-session <- 'FP1'
+year <- readline(prompt = "Year: ")
+year <- as.integer(year)
+round <- readline(prompt = "Round: ")
+round <- as.integer(round)
+session <- readline(prompt = "Session: ")
 
 laps <- fread(paste0("timing_data/", year, "_", round, "_", session, "_laps.csv"))
 
@@ -73,14 +75,47 @@ laps_clean %>%
   scale_fill_manual(name = "Team", values = team_colors) +
   theme_fivethirtyeight() +
   labs(title = paste0("Lap Times (Race Pace)"),
-       subtitle = paste0("Jeddah - ", session, " - ", year))
+       subtitle = paste0(session, " - ", "Round ", round, ", ",  year))
 
+ggsave(filename = paste0("Plots/team_box_", year, "_", round, "_", session, ".jpg"),
+              plot = last_plot(),
+              units = "mm",
+              width = 200,
+              height = 200)
 
-# WIP ---------------------------------------------------------------------
+# Laps run
+laps_clean %>% 
+  filter(!is.na(seconds)) %>% 
+  group_by(Team) %>% 
+  summarise(laps_run = n()) %>% 
+  ggplot(aes(x = laps_run, y = reorder(Team, laps_run), fill = Team)) +
+  geom_col() +
+  scale_fill_manual(name = "Team", values = team_colors) +
+  theme_fivethirtyeight() +
+  labs(title = paste0("Laps Run"),
+       subtitle = paste0(session, " - ", "Round ", round, ", ",  year))
+
+ggsave(filename = paste0("Plots/team_laps_run_", year, "_", round, "_", session, ".jpg"),
+       plot = last_plot(),
+       units = "mm",
+       width = 200,
+       height = 200)
 
 # Race pace stints
 laps_clean %>% 
-  filter(Driver %in% c("HAM", "VER", "LEC")) %>% 
+  filter(Driver %in% c("HAM", "VER", "LEC", "SAI", "RUS", "PER")) %>% 
   filter(seconds <= med_fast_lap * 1.1) %>% 
   ggplot(aes(x = LapNumber, y = seconds, color = Driver)) +
-  geom_line()
+  geom_point(size = 3) +
+  geom_line(size = 2, alpha = .7) +
+  scale_color_manual(name = "Driver", values = driver_colors) +
+  theme_fivethirtyeight() +
+  theme(legend.position = "bottom") +
+  labs(title = "Lap Times (Race Pace)",
+       subtitle = paste0(session, " - ", "Round ", round, ", ",  year))
+
+ggsave(filename = paste0("Plots/driver_laps_", year, "_", round, "_", session, ".jpg"),
+       plot = last_plot(),
+       units = "mm",
+       width = 200,
+       height = 200)
