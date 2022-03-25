@@ -11,13 +11,14 @@ source("prod_helpers/colors_and_themes.r")
 
 # Get Data ----------------------------------------------------------------
 
+round <- 22
+year <- 2021
+session <- 'Q'
+
 # Telem
 path <- "C:/Users/Kyle/Documents/Projects/Data Projects/f1/timing_data/"
 
-telem <- fread(paste0(path, "2022_1_q_telem_fastest.csv"))
-
-glimpse(telem)
-
+telem <- fread(paste0(path, year, "_", round, "_", session, "_telem_fastest.csv"))
 
 # Build Plots -------------------------------------------------------------
 
