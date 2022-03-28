@@ -11,8 +11,8 @@ source("prod_helpers/colors_and_themes.r")
 
 # Get Data ----------------------------------------------------------------
 
-round <- 1
-year <- 2022
+round <- 2
+year <- lubridate::year(today())
 session <- 'Q'
 
 # Telem
@@ -52,7 +52,7 @@ corners <- telem %>% group_by(Driver) %>%
   slice_max(1) %>% 
   arrange(desc(n)) %>% 
   ungroup() %>% 
-  slice_max(order_by = n, n = 8) %>% 
+  filter(n > 10) %>%  # get only corners that more than half the grid agree on
   arrange(turn_start) %>% 
   mutate(turn_num = row_number())
 
@@ -70,7 +70,45 @@ telem %>%
   mutate(local_min = if_else(lead(med_throttle) > med_throttle & lag(med_throttle) >= med_throttle,
                              TRUE,
                              FALSE)) %>% 
-  filter(local_min == TRUE)
+  filter(local_min == TRUE) %>% 
+  mutate(turn_start = dist_rounded - 100L,
+         turn_end = dist_rounded + 100L) %>% 
+  group_by(turn_start, turn_end) %>% 
+  mutate(n = n())
+
+#Try to mimic corner slope method more closely
+telem %>% 
+  group_by(Driver) %>% 
+  mutate(dist_rounded = (Distance %/% 20) * 20) %>% 
+  group_by(Driver, dist_rounded) %>% 
+  select(Driver, dist_rounded, Throttle, Brake, Speed) %>% 
+  mutate(local_min = if_else(lead(Throttle) > Throttle & lag(Throttle) >= Throttle,
+                             TRUE,
+                             FALSE)) %>% 
+  filter(local_min == TRUE) %>% 
+  mutate(turn_start = dist_rounded - 100L,
+         turn_end = dist_rounded + 100L) %>% 
+  group_by(turn_start, turn_end) %>% 
+  mutate(n = n())
+  
+# v3 WIP using throttle instead of Speed
+telem %>% group_by(Driver) %>% 
+  mutate(slope = (Throttle - lag(Throttle, 1L))/(Distance - lag(Distance, 1L))) %>% 
+  mutate(apex = if_else(slope >= 0 & lag(slope, 1L) < 0, TRUE, FALSE)) %>% 
+  filter(apex == TRUE) %>% 
+  mutate(turn_start = Distance - 100L,
+         turn_end = Distance + 100L) %>% 
+  mutate(turn_start = round(turn_start, -1),
+         turn_end = round(turn_end, -1)) %>% 
+  group_by(turn_start, turn_end) %>% 
+  mutate(n = n()) %>% 
+  select(turn_start, turn_end, n) %>% 
+  slice_max(1) %>% 
+  arrange(desc(n)) %>% 
+  ungroup() %>% 
+  slice_max(order_by = n, n = 8) %>% 
+  arrange(turn_start) %>% 
+  mutate(turn_num = row_number())
 
 # Filtering using the corners df to get telem data of corners only
 # Corners
@@ -150,10 +188,11 @@ analyze_corners <- function(driver1, ...){
   # Plot each corner
   data %>% 
     left_join(corner_speed_text, by = c("Driver", "turn_num")) %>% 
+    arrange(turn_num) %>% 
     ggplot(aes(x = Distance, y = Speed, color = Driver)) +
     geom_line(size = 2) +
-    facet_wrap(vars(paste0("Turn ", turn_num)),
-               nrow = 4) +
+    facet_wrap(vars(turn_num),
+               ncol = 4) +
     scale_color_manual(name = "Driver",
                        values = driver_colors) +
     #scale_alpha_identity() +
@@ -204,8 +243,9 @@ analyze_sectors <- function(driver1, ...){
   sector_data %>% 
     filter(Driver %in% c(driver1, ...)) %>% 
     ggplot(aes(x = meters, y = Speed, color = Driver)) +
-    geom_line() +
-    facet_wrap(vars(sector))
+    geom_line(size = 2) +
+    facet_wrap(vars(sector)) +
+    theme_fivethirtyeight()
   
 }
 
