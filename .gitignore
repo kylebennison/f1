@@ -52,3 +52,5 @@ fastf1_cache
 .Rproj.user
 timing_data
 f1.Rproj
+
+*.pyc
