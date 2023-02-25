@@ -37,3 +37,18 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# venv
+.venv/
+.venv/*
+.venv
+venv/
+.venv\
+
+# Match both files and directories with these names
+fastf1_cache
+
+.ipynb_checkpoints
+.Rproj.user
+timing_data
+f1.Rproj

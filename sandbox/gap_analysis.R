@@ -2,6 +2,11 @@ library(httr)
 library(tidyverse)
 library(xml2)
 
+theme_f1 <- theme(plot.title = element_text(size = 25),
+                  plot.background = element_blank(),
+                  panel.grid = element_line(color = "lightgrey"),
+                  text = element_text(family = "mono"))
+
 master <- tibble()
 for(lap in 1:60){
   message("Doing Lap ", lap)
@@ -33,13 +38,13 @@ laptimes <- master %>%
            as.integer(sub(":", "", str_extract(time, ":[0-9]+"))) +
            as.double(str_extract(time, "\\.[0-9]+")),
          lap = as.integer(lap),
-         postion = as.integer(postion)
+         position = as.integer(position)
          )
 
 avg_laptime <- laptimes %>% 
   group_by(lap) %>% 
   summarise(lap_time_in_seconds = mean(lap_time_in_seconds)) %>% 
-  mutate(name = "field", postion = 0L)
+  mutate(name = "field", position = 0L)
 
 # Add gap to car in front, behind, and leader
 gaps <- laptimes %>% 
@@ -54,12 +59,38 @@ gaps <- laptimes %>%
          gap_to_car_behind = lead(total_time, n = 1L, order_by = total_time) - total_time
   )
 
-# Graph Laptimes
+improvement <- gaps %>% 
+  group_by(name) %>% 
+  mutate(change_from_prev_lap = lap_time_in_seconds - lag(lap_time_in_seconds, 
+                                                          n = 1L, 
+                                                          order_by = lap)) %>% 
+  ungroup()
+
+# Graph Lap improvement
+improvement %>% 
+  filter(name == "hamilton") %>% 
+  ggplot(aes(x = lap, y = change_from_prev_lap)) +
+  geom_line() +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(title = "Change from previous lap") +
+  theme_fivethirtyeight()
+
+# Graph position by lap
+improvement %>% 
+  ggplot(aes(x = lap, y = position)) +
+  geom_line(aes(color = name), size = 2, alpha = .5) +
+  geom_text(aes(label = if_else(lap == 57, name, ""))) +
+  scale_y_reverse(breaks = seq(1,20, 2)) +
+  theme_fivethirtyeight() +
+  labs(title = "Lap Chart for Turkish GP")
+
+# Graph Laptimes ----------------------------------------------------------
+
 
 laptimes %>%
   select(-time) %>%
   rbind(avg_laptime) %>%
-  filter(postion <= 10,
+  filter(position <= 10,
          lap > 30) %>%
   filter(name %in% c("bottas", "leclerc", "hamilton", "perez", "field")) %>%
   ggplot(aes(x = lap, y = lap_time_in_seconds)) +
@@ -122,8 +153,11 @@ ggsave(filename = paste0(lubridate::today(),
 
 # Gap
 
+# Graph Gap to Car Behind -------------------------------------------------
+
+
 gaps %>% 
-  filter(lap > 30, postion < 10) %>% 
+  filter(lap > 30, position < 10) %>% 
   ggplot(aes(x = lap, y = gap_to_car_behind)) + 
   geom_line(aes(color = name,
                 alpha = if_else(name == "hamilton", 1, .3))) +
@@ -182,8 +216,11 @@ ggsave(filename = paste0(lubridate::today(),
        dpi = 300)
 
 
+# Graph Gap to Leader -----------------------------------------------------
+
+
 gaps %>% 
-  filter(lap > 30, postion < 10) %>% 
+  filter(lap > 30, position < 10) %>% 
   ggplot(aes(x = lap, y = gap_to_front)) + 
   geom_line(aes(alpha = if_else(name == "hamilton", 1, .9), # not respecting my .9 wishes
                 color = name)) +
@@ -239,3 +276,11 @@ ggsave(filename = paste0(lubridate::today(),
        units = "mm",
        dpi = 300)
 
+
+# Graph Lap Time for entire field -----------------------------------------
+
+
+
+gaps %>% 
+  ggplot(aes(x = lap, y = lap_time_in_seconds)) +
+  geom_smooth()

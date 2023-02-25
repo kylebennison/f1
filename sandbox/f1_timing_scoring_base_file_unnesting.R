@@ -7,10 +7,31 @@ library(jsonlite)
 library(rtweet)
 
 session_info <- "https://livetiming.formula1.com/static/SessionInfo.json"
-url <- "https://livetiming.formula1.com/static/2021/2021-03-28_Bahrain_Grand_Prix/2021-03-28_Race/SPFeed.json"
+url <- "https://livetiming.formula1.com/static/2021/2021-10-10_Turkish_Grand_Prix/2021-10-10_Race/SPFeed.json"
 url <- URLencode(url)
 
-data <- fromJSON(url)
+
+# Get latest race path based on session info ------------------------------
+
+sesh_data <- jsonlite::fromJSON(session_info)
+path <- sesh_data$Path
+live_timing_url <- paste0("https://livetiming.formula1.com/static/", 
+                          path,
+                          "SPFeed.json")
+
+library(httr)
+
+data <- httr::GET(url = live_timing_url,
+                  content_type_json())
+
+data_tbl <- content(data, as="text", encoding = "UTF-8") %>%
+  jsonlite::fromJSON(flatten = TRUE) %>% 
+  tibble()
+
+
+# Previous Code -----------------------------------------------------------
+
+data <- fromJSON(live_timing_url)
 dt2 <- data$LapPos$graph$data
 dt3 <- dt2 %>% enframe %>% unnest(cols = "value")
 dt4 <- dt3 %>% mutate(def = rep(c("Lap", "Pos"), nrow(dt3)/2)) # Identify which row is lap and which is position
@@ -78,6 +99,7 @@ driver_tbl <- data$init$data$Drivers %>% tibble()
 # Shorter times look like sector times. I'm guessing there might be n_pitstops in there, laps led, etc.
 
 best1 <- data$best$data$DR$B %>% enframe() %>% unnest(cols = "value")
+# name is position 1-20
 
 
 # Free -------------------------------------------------------------------

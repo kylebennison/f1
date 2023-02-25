@@ -14,7 +14,7 @@ from fastf1 import plotting
 import seaborn as sns
 import pandas as pd
 
-direct = r'C:\Users\Kyle\Documents\Kyle\Personal\Data\f1\fastf1_cache'
+direct = os.getcwd()+'\\fastf1_cache'
 
 ff1.Cache.enable_cache(direct)
 
