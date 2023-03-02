@@ -43,7 +43,7 @@ vignettes/*.pdf
 .venv/*
 .venv
 venv/
-.venv\
+.venv
 
 # Match both files and directories with these names
 fastf1_cache
