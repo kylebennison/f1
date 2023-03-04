@@ -16,6 +16,7 @@ color_map = {
 }
 
 
+# TODO: Accept drivers or teams as input, or a laps object and add a colors column
 # Order list of colors same as list of teams
 def order_colors(teams_list: list):
     """Supply a list of ordered teams and return a list of colors in the same order"""
